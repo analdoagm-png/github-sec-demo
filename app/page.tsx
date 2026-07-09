@@ -1,12 +1,17 @@
+"use client";
+
+import { useMemo, useState, type ChangeEvent } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
+
+type Severity = "Critical" | "High" | "Medium" | "Low";
 
 type Finding = {
   title: string;
   issueRef: string;
   labels: string[];
   extraLabelCount?: number;
-  severity: string;
+  severity: Severity;
   repo: string;
   owner: string;
   dueDate: string;
@@ -14,21 +19,83 @@ type Finding = {
   status: string;
 };
 
-const findings: Finding[] = Array.from({ length: 9 }, (_, i) => {
-  const n = i + 1;
-  return {
-    title: `Example Finding Title ${n}`,
-    issueRef: `example-tracker #${1000 + n}`,
-    labels: n <= 6 ? ["Category: Example"] : ["--"],
-    extraLabelCount: n >= 4 && n <= 6 ? 5 : undefined,
-    severity: "Critical",
-    repo: "example-service",
-    owner: "Example Owner",
-    dueDate: "Jan. 1, 2026",
-    daysRemaining: "20 days remaining",
-    status: "Example",
-  };
-});
+const FINDING_TEMPLATES: { title: string; severity: Severity; category: string }[] = [
+  { title: "Publicly readable storage bucket detected", severity: "Critical", category: "Cloud Infrastructure" },
+  { title: "Hardcoded API credential in source", severity: "Critical", category: "Secrets Management" },
+  { title: "Unencrypted database snapshot", severity: "Critical", category: "Data Protection" },
+  { title: "SSH port open to 0.0.0.0/0", severity: "Critical", category: "Network Security" },
+  { title: "Unpatched CVE in base container image", severity: "High", category: "Container Security" },
+  { title: "Missing MFA enforcement for admin role", severity: "High", category: "Identity & Access" },
+  { title: "Excessive IAM permissions on service role", severity: "High", category: "Identity & Access" },
+  { title: "Outdated dependency with known vulnerability", severity: "High", category: "Application Security" },
+  { title: "TLS certificate expiring within 30 days", severity: "Medium", category: "Network Security" },
+  { title: "Sensitive data logged in plaintext", severity: "Medium", category: "Data Protection" },
+  { title: "Container running as root user", severity: "Medium", category: "Container Security" },
+  { title: "Missing WAF rule for public endpoint", severity: "Medium", category: "Network Security" },
+  { title: "Weak password policy on legacy portal", severity: "Low", category: "Identity & Access" },
+];
+
+const OWNERS: { repo: string; owner: string }[] = [
+  { repo: "payments-api", owner: "Platform Team" },
+  { repo: "auth-service", owner: "Identity Team" },
+  { repo: "web-frontend", owner: "Growth Team" },
+  { repo: "data-pipeline", owner: "Data Eng" },
+  { repo: "billing-service", owner: "Finance Systems" },
+  { repo: "notification-service", owner: "Comms Team" },
+  { repo: "user-service", owner: "Core Platform" },
+  { repo: "search-service", owner: "Search Team" },
+  { repo: "inventory-api", owner: "Commerce Team" },
+  { repo: "edge-gateway", owner: "SRE Team" },
+  { repo: "logging-agent", owner: "Observability" },
+  { repo: "infra-network", owner: "SRE Team" },
+];
+
+const STATUSES = ["Exception", "In Progress", "Overdue", "Accepted Risk"];
+
+const DUE_DATES: { date: string; remaining: string }[] = [
+  { date: "Jul 15, 2026", remaining: "6 days remaining" },
+  { date: "Jul 22, 2026", remaining: "13 days remaining" },
+  { date: "Aug 1, 2026", remaining: "23 days remaining" },
+  { date: "Aug 15, 2026", remaining: "37 days remaining" },
+  { date: "Jun 30, 2026", remaining: "9 days overdue" },
+  { date: "Jul 9, 2026", remaining: "Due today" },
+  { date: "Sep 1, 2026", remaining: "54 days remaining" },
+];
+
+function buildFindings(count: number): Finding[] {
+  return Array.from({ length: count }, (_, i) => {
+    const template = FINDING_TEMPLATES[i % FINDING_TEMPLATES.length];
+    const ownerInfo = OWNERS[i % OWNERS.length];
+    const status = STATUSES[i % STATUSES.length];
+    const due = DUE_DATES[i % DUE_DATES.length];
+    const noLabel = i % 11 === 10;
+    const labels = noLabel ? ["--"] : [template.category];
+    const extraLabelCount = !noLabel && i % 5 === 4 ? 3 : undefined;
+
+    return {
+      title: template.title,
+      issueRef: `sec-tracker #${1000 + i}`,
+      labels,
+      extraLabelCount,
+      severity: template.severity,
+      repo: ownerInfo.repo,
+      owner: ownerInfo.owner,
+      dueDate: due.date,
+      daysRemaining: due.remaining,
+      status,
+    };
+  });
+}
+
+const ALL_FINDINGS = buildFindings(37);
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
+
+const SEVERITY_CLASS: Record<Severity, string> = {
+  Critical: styles.severityCritical,
+  High: styles.severityHigh,
+  Medium: styles.severityMedium,
+  Low: styles.severityLow,
+};
 
 function FindingRow({ finding }: { finding: Finding }) {
   return (
@@ -61,7 +128,11 @@ function FindingRow({ finding }: { finding: Finding }) {
         ) : null}
       </div>
       <div className={`${styles.cell} ${styles.cellSeverity}`}>
-        <span className={styles.severityBadge}>{finding.severity}</span>
+        <span
+          className={`${styles.severityBadge} ${SEVERITY_CLASS[finding.severity]}`}
+        >
+          {finding.severity}
+        </span>
       </div>
       <div className={`${styles.cell} ${styles.cellOwner}`}>
         <a className={styles.ownerLink} href="#">
@@ -85,6 +156,27 @@ function FindingRow({ finding }: { finding: Finding }) {
 }
 
 export default function Home() {
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
+
+  const totalItems = ALL_FINDINGS.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
+
+  const visibleFindings = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return ALL_FINDINGS.slice(start, start + pageSize);
+  }, [currentPage, pageSize]);
+
+  function goToPage(target: number) {
+    setPage(Math.min(Math.max(1, target), totalPages));
+  }
+
+  function handlePageSizeChange(e: ChangeEvent<HTMLSelectElement>) {
+    setPageSize(Number(e.target.value));
+    setPage(1);
+  }
+
   return (
     <div>
       <nav className={styles.navbar}>
@@ -129,7 +221,7 @@ export default function Home() {
       </nav>
 
       <div className={styles.page}>
-        <h1 className={styles.pageTitle}>9 Findings</h1>
+        <h1 className={styles.pageTitle}>{totalItems} Findings</h1>
 
         <div className={styles.card}>
           <div className={styles.filterHeader}>
@@ -145,7 +237,7 @@ export default function Home() {
               <span className={styles.filterCounter}>4</span>
             </button>
             <div className={styles.filterTags}>
-              {["Example Filter", "Example Filter", "Example Filter", "Example Filter"].map(
+              {["Critical", "High", "Cloud Infrastructure", "Identity & Access"].map(
                 (label, i) => (
                   <span key={i} className={styles.tag}>
                     {label}
@@ -240,8 +332,8 @@ export default function Home() {
             </div>
           </div>
 
-          {findings.map((finding, i) => (
-            <FindingRow key={i} finding={finding} />
+          {visibleFindings.map((finding) => (
+            <FindingRow key={finding.issueRef} finding={finding} />
           ))}
 
           <p className={styles.disclaimer}>
@@ -251,15 +343,26 @@ export default function Home() {
 
           <div className={styles.pagination}>
             <div className={styles.resultsPerPage}>
-              <select className={styles.resultsSelect} defaultValue={10}>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
+              <select
+                className={styles.resultsSelect}
+                value={pageSize}
+                onChange={handlePageSizeChange}
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
               </select>
               <span className={styles.resultsLabel}>Results per page</span>
             </div>
             <div className={styles.paginationNav}>
-              <button className={styles.pageBtn} type="button">
+              <button
+                className={styles.pageBtn}
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => goToPage(currentPage - 1)}
+              >
                 <Image
                   className={styles.chevronIcon}
                   src="/icons/chevron-left.svg"
@@ -269,24 +372,23 @@ export default function Home() {
                 />
                 Previous
               </button>
-              <button
-                className={`${styles.pageBtn} ${styles.pageBtnActive}`}
-                type="button"
-              >
-                1
-              </button>
-              <button className={styles.pageBtn} type="button">
-                2
-              </button>
-              <button className={styles.pageBtn} type="button">
-                3
-              </button>
-              <button className={styles.pageBtn} type="button">
-                4
-              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (pageNumber) => (
+                  <button
+                    key={pageNumber}
+                    className={`${styles.pageBtn} ${pageNumber === currentPage ? styles.pageBtnActive : ""}`}
+                    type="button"
+                    onClick={() => goToPage(pageNumber)}
+                  >
+                    {pageNumber}
+                  </button>
+                ),
+              )}
               <button
                 className={`${styles.pageBtn} ${styles.pageBtnLink}`}
                 type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => goToPage(currentPage + 1)}
               >
                 Next
                 <Image
@@ -298,7 +400,7 @@ export default function Home() {
                 />
               </button>
             </div>
-            <p className={styles.totalItems}>Total: 9 items</p>
+            <p className={styles.totalItems}>Total: {totalItems} items</p>
           </div>
         </div>
       </div>

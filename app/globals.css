@@ -19,6 +19,12 @@
   --color-fg-danger: #cb2431;
   --color-fg-success: #22863a;
 
+  /* Color — severity scale */
+  --color-severity-critical: #cb2431;
+  --color-severity-high: #bc4c00;
+  --color-severity-medium: #9a6700;
+  --color-severity-low: #57606a;
+
   /* Color — borders */
   --color-border-default: #d0d7de;
   --color-border-muted: #e1e4e8;
