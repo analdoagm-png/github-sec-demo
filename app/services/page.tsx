@@ -2,8 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import FilterPanel from "../components/FilterPanel";
 import Navbar from "../components/Navbar";
 import Pagination from "../components/Pagination";
+import {
+  createEmptyFilterState,
+  countSelected,
+  getActiveChips,
+  matchesFilters,
+  type FilterState,
+} from "../lib/filters";
 import { OWNERS } from "../lib/owners";
 import shared from "../shared.module.css";
 import styles from "./page.module.css";
@@ -21,7 +29,7 @@ type ServiceRow = {
 const OVERDUE_POOL = [
   { days: 5, severity: "Critical" },
   { days: 12, severity: "High" },
-  { days: 19, severity: "Medium" },
+  { days: 19, severity: "Moderate" },
   { days: 34, severity: "Low" },
   { days: 47, severity: "Informational" },
   { days: 61, severity: "High" },
@@ -134,15 +142,44 @@ function ServiceTableRow({ row }: { row: ServiceRow }) {
 export default function ServicesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(createEmptyFilterState);
 
-  const totalItems = ALL_SERVICES.length;
+  // Services rows only carry a severity (via their most-overdue finding) —
+  // State/SLA Status/Exception Status are per-finding concepts, so those
+  // fieldsets stay visible in the shared panel but don't constrain this table.
+  const filteredServices = useMemo(
+    () =>
+      ALL_SERVICES.filter((row) =>
+        matchesFilters({ severity: row.overdueSeverity }, appliedFilters),
+      ),
+    [appliedFilters],
+  );
+
+  const totalItems = filteredServices.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(page, totalPages);
 
   const visibleServices = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return ALL_SERVICES.slice(start, start + pageSize);
-  }, [currentPage, pageSize]);
+    return filteredServices.slice(start, start + pageSize);
+  }, [filteredServices, currentPage, pageSize]);
+
+  const activeChips = getActiveChips(appliedFilters);
+
+  function removeChip(groupKey: string, value: string) {
+    setAppliedFilters((prev) => {
+      const next = { ...prev, [groupKey]: new Set(prev[groupKey]) };
+      next[groupKey].delete(value);
+      return next;
+    });
+    setPage(1);
+  }
+
+  function handleApplyFilters(next: FilterState) {
+    setAppliedFilters(next);
+    setPage(1);
+  }
 
   return (
     <div>
@@ -193,7 +230,11 @@ export default function ServicesPage() {
 
         <div className={shared.card}>
           <div className={shared.filterHeader}>
-            <button className={shared.filterButton} type="button">
+            <button
+              className={shared.filterButton}
+              type="button"
+              onClick={() => setFilterPanelOpen(true)}
+            >
               <Image
                 className={shared.filterIcon}
                 src="/icons/filter.svg"
@@ -202,23 +243,32 @@ export default function ServicesPage() {
                 height={16}
               />
               <span>Filter</span>
-              <span className={shared.filterCounter}>4</span>
+              {countSelected(appliedFilters) > 0 && (
+                <span className={shared.filterCounter}>
+                  {countSelected(appliedFilters)}
+                </span>
+              )}
             </button>
             <div className={shared.filterTags}>
-              {["Missed SLA", "Near SLA", "c2c-actions", "SRE Team"].map(
-                (label, i) => (
-                  <span key={i} className={shared.tag}>
-                    {label}
+              {activeChips.map((chip) => (
+                <span key={`${chip.groupKey}-${chip.value}`} className={shared.tag}>
+                  {chip.label}
+                  <button
+                    type="button"
+                    className={shared.tagDismissButton}
+                    onClick={() => removeChip(chip.groupKey, chip.value)}
+                    aria-label={`Remove ${chip.label} filter`}
+                  >
                     <Image
                       className={shared.tagDismiss}
                       src="/icons/dismiss.svg"
-                      alt="Remove filter"
+                      alt=""
                       width={16}
                       height={16}
                     />
-                  </span>
-                ),
-              )}
+                  </button>
+                </span>
+              ))}
             </div>
             <input
               className={shared.searchInput}
@@ -300,9 +350,15 @@ export default function ServicesPage() {
             </div>
           </div>
 
-          {visibleServices.map((row, i) => (
-            <ServiceTableRow key={`${row.service}-${i}`} row={row} />
-          ))}
+          {visibleServices.length > 0 ? (
+            visibleServices.map((row, i) => (
+              <ServiceTableRow key={`${row.service}-${i}`} row={row} />
+            ))
+          ) : (
+            <p className={shared.disclaimer}>
+              No services match the selected filters.
+            </p>
+          )}
 
           <Pagination
             page={page}
@@ -316,6 +372,13 @@ export default function ServicesPage() {
           />
         </div>
       </div>
+
+      <FilterPanel
+        open={filterPanelOpen}
+        applied={appliedFilters}
+        onApply={handleApplyFilters}
+        onClose={() => setFilterPanelOpen(false)}
+      />
     </div>
   );
 }

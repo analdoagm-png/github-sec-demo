@@ -185,6 +185,14 @@
   height: 16px;
 }
 
+.tagDismissButton {
+  display: flex;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
 .searchInput {
   flex-shrink: 0;
   width: 355px;

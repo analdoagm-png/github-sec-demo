@@ -2,13 +2,24 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import FilterPanel from "./components/FilterPanel";
 import Navbar from "./components/Navbar";
 import Pagination from "./components/Pagination";
+import {
+  createEmptyFilterState,
+  countSelected,
+  getActiveChips,
+  matchesFilters,
+  type FilterState,
+} from "./lib/filters";
 import { OWNERS } from "./lib/owners";
 import shared from "./shared.module.css";
 import styles from "./page.module.css";
 
-type Severity = "Critical" | "High" | "Medium" | "Low";
+type Severity = "Critical" | "High" | "Moderate" | "Low" | "Informational";
+type FindingState = "Open" | "Reopened" | "False Positive" | "Risk Acceptance" | "Closed";
+type SlaStatus = "In SLA" | "Near SLA" | "Missed SLA" | "Exception" | "Remediated";
+type ExceptionStatus = "Active" | "Archived" | "Expired" | "Pending" | "Denied";
 
 type Finding = {
   title: string;
@@ -20,7 +31,9 @@ type Finding = {
   owner: string;
   dueDate: string;
   daysRemaining: string;
-  status: string;
+  state: FindingState;
+  slaStatus: SlaStatus;
+  exceptionStatus: ExceptionStatus;
 };
 
 const FINDING_TEMPLATES: { title: string; severity: Severity; category: string }[] = [
@@ -32,14 +45,17 @@ const FINDING_TEMPLATES: { title: string; severity: Severity; category: string }
   { title: "Missing MFA enforcement for admin role", severity: "High", category: "Identity & Access" },
   { title: "Excessive IAM permissions on service role", severity: "High", category: "Identity & Access" },
   { title: "Outdated dependency with known vulnerability", severity: "High", category: "Application Security" },
-  { title: "TLS certificate expiring within 30 days", severity: "Medium", category: "Network Security" },
-  { title: "Sensitive data logged in plaintext", severity: "Medium", category: "Data Protection" },
-  { title: "Container running as root user", severity: "Medium", category: "Container Security" },
-  { title: "Missing WAF rule for public endpoint", severity: "Medium", category: "Network Security" },
+  { title: "TLS certificate expiring within 30 days", severity: "Moderate", category: "Network Security" },
+  { title: "Sensitive data logged in plaintext", severity: "Moderate", category: "Data Protection" },
+  { title: "Container running as root user", severity: "Moderate", category: "Container Security" },
+  { title: "Missing WAF rule for public endpoint", severity: "Moderate", category: "Network Security" },
   { title: "Weak password policy on legacy portal", severity: "Low", category: "Identity & Access" },
+  { title: "Verbose error messages expose stack traces", severity: "Informational", category: "Application Security" },
 ];
 
-const STATUSES = ["Exception", "In Progress", "Overdue", "Accepted Risk"];
+const STATES: FindingState[] = ["Open", "Reopened", "False Positive", "Risk Acceptance", "Closed"];
+const SLA_STATUSES: SlaStatus[] = ["In SLA", "Near SLA", "Missed SLA", "Exception", "Remediated"];
+const EXCEPTION_STATUSES: ExceptionStatus[] = ["Active", "Archived", "Expired", "Pending", "Denied"];
 
 const DUE_DATES: { date: string; remaining: string }[] = [
   { date: "Jul 15, 2026", remaining: "6 days remaining" },
@@ -55,7 +71,6 @@ function buildFindings(count: number): Finding[] {
   return Array.from({ length: count }, (_, i) => {
     const template = FINDING_TEMPLATES[i % FINDING_TEMPLATES.length];
     const ownerInfo = OWNERS[i % OWNERS.length];
-    const status = STATUSES[i % STATUSES.length];
     const due = DUE_DATES[i % DUE_DATES.length];
     const noLabel = i % 11 === 10;
     const labels = noLabel ? ["--"] : [template.category];
@@ -71,7 +86,9 @@ function buildFindings(count: number): Finding[] {
       owner: ownerInfo.owner,
       dueDate: due.date,
       daysRemaining: due.remaining,
-      status,
+      state: STATES[i % STATES.length],
+      slaStatus: SLA_STATUSES[i % SLA_STATUSES.length],
+      exceptionStatus: EXCEPTION_STATUSES[i % EXCEPTION_STATUSES.length],
     };
   });
 }
@@ -81,15 +98,17 @@ const ALL_FINDINGS = buildFindings(37);
 const SEVERITY_CLASS: Record<Severity, string> = {
   Critical: styles.severityCritical,
   High: styles.severityHigh,
-  Medium: styles.severityMedium,
+  Moderate: styles.severityModerate,
   Low: styles.severityLow,
+  Informational: styles.severityInformational,
 };
 
 const SEVERITY_ACCENT: Record<Severity, string> = {
   Critical: "var(--color-severity-critical)",
   High: "var(--color-severity-high)",
-  Medium: "var(--color-severity-medium)",
+  Moderate: "var(--color-severity-moderate)",
   Low: "var(--color-severity-low)",
+  Informational: "var(--color-severity-informational)",
 };
 
 function FindingRow({ finding }: { finding: Finding }) {
@@ -104,8 +123,8 @@ function FindingRow({ finding }: { finding: Finding }) {
       <div className={`${shared.cell} ${styles.cellState}`}>
         <span className={shared.mobileLabel}>State</span>
         <Image
-          src="/icons/issue-opened.svg"
-          alt="Open issue"
+          src={finding.state === "Closed" ? "/icons/check-circle.svg" : "/icons/issue-opened.svg"}
+          alt={finding.state}
           width={16}
           height={16}
         />
@@ -158,7 +177,7 @@ function FindingRow({ finding }: { finding: Finding }) {
           width={16}
           height={16}
         />
-        <span className={shared.mutedText}>{finding.status}</span>
+        <span className={shared.mutedText}>{finding.slaStatus}</span>
       </div>
     </div>
   );
@@ -167,26 +186,64 @@ function FindingRow({ finding }: { finding: Finding }) {
 export default function Home() {
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(createEmptyFilterState);
 
-  const totalItems = ALL_FINDINGS.length;
+  const filteredFindings = useMemo(
+    () =>
+      ALL_FINDINGS.filter((finding) =>
+        matchesFilters(
+          {
+            state: finding.state,
+            severity: finding.severity,
+            slaStatus: finding.slaStatus,
+            exceptionStatus: finding.exceptionStatus,
+          },
+          appliedFilters,
+        ),
+      ),
+    [appliedFilters],
+  );
+
+  const totalItems = filteredFindings.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(page, totalPages);
 
   const visibleFindings = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return ALL_FINDINGS.slice(start, start + pageSize);
-  }, [currentPage, pageSize]);
+    return filteredFindings.slice(start, start + pageSize);
+  }, [filteredFindings, currentPage, pageSize]);
+
+  const activeChips = getActiveChips(appliedFilters);
+
+  function removeChip(groupKey: string, value: string) {
+    setAppliedFilters((prev) => {
+      const next = { ...prev, [groupKey]: new Set(prev[groupKey]) };
+      next[groupKey].delete(value);
+      setPage(1);
+      return next;
+    });
+  }
+
+  function handleApplyFilters(next: FilterState) {
+    setAppliedFilters(next);
+    setPage(1);
+  }
 
   return (
     <div>
       <Navbar />
 
       <div className={shared.page}>
-        <h1 className={shared.pageTitle}>{totalItems} Findings</h1>
+        <h1 className={shared.pageTitle}>{ALL_FINDINGS.length} Findings</h1>
 
         <div className={shared.card}>
           <div className={shared.filterHeader}>
-            <button className={shared.filterButton} type="button">
+            <button
+              className={shared.filterButton}
+              type="button"
+              onClick={() => setFilterPanelOpen(true)}
+            >
               <Image
                 className={shared.filterIcon}
                 src="/icons/filter.svg"
@@ -195,23 +252,32 @@ export default function Home() {
                 height={16}
               />
               <span>Filter</span>
-              <span className={shared.filterCounter}>4</span>
+              {countSelected(appliedFilters) > 0 && (
+                <span className={shared.filterCounter}>
+                  {countSelected(appliedFilters)}
+                </span>
+              )}
             </button>
             <div className={shared.filterTags}>
-              {["Critical", "High", "Cloud Infrastructure", "Identity & Access"].map(
-                (label, i) => (
-                  <span key={i} className={shared.tag}>
-                    {label}
+              {activeChips.map((chip) => (
+                <span key={`${chip.groupKey}-${chip.value}`} className={shared.tag}>
+                  {chip.label}
+                  <button
+                    type="button"
+                    className={shared.tagDismissButton}
+                    onClick={() => removeChip(chip.groupKey, chip.value)}
+                    aria-label={`Remove ${chip.label} filter`}
+                  >
                     <Image
                       className={shared.tagDismiss}
                       src="/icons/dismiss.svg"
-                      alt="Remove filter"
+                      alt=""
                       width={16}
                       height={16}
                     />
-                  </span>
-                ),
-              )}
+                  </button>
+                </span>
+              ))}
             </div>
             <input
               className={shared.searchInput}
@@ -293,9 +359,15 @@ export default function Home() {
             </div>
           </div>
 
-          {visibleFindings.map((finding) => (
-            <FindingRow key={finding.issueRef} finding={finding} />
-          ))}
+          {visibleFindings.length > 0 ? (
+            visibleFindings.map((finding) => (
+              <FindingRow key={finding.issueRef} finding={finding} />
+            ))
+          ) : (
+            <p className={shared.disclaimer}>
+              No findings match the selected filters.
+            </p>
+          )}
 
           <p className={shared.disclaimer}>
             The security findings shown are based on your service catalog
@@ -314,6 +386,13 @@ export default function Home() {
           />
         </div>
       </div>
+
+      <FilterPanel
+        open={filterPanelOpen}
+        applied={appliedFilters}
+        onApply={handleApplyFilters}
+        onClose={() => setFilterPanelOpen(false)}
+      />
     </div>
   );
 }

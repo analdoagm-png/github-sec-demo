@@ -1,0 +1,246 @@
+/* Slide-over filter panel adapted from Figma node 73:8959 ("Panel"). */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 100;
+}
+
+.overlayOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100dvh;
+  width: min(520px, 100vw);
+  background: var(--color-canvas-default);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 101;
+}
+
+.panelOpen {
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .panel {
+    transition: none;
+  }
+}
+
+/* Header — fixed to the top of the panel */
+
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.title {
+  font-size: var(--text-lg-size);
+  line-height: var(--text-lg-line);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--text-lg-tracking);
+  color: var(--color-fg-default);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--radius-sm);
+}
+
+.closeButton:hover {
+  background: var(--color-canvas-subtle);
+}
+
+/* Body — the only part that scrolls */
+
+.body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.fieldset:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.fieldsetLabel {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fieldset-label);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.checkboxRowNested {
+  padding-left: var(--space-4);
+}
+
+.checkboxLabel {
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
+  letter-spacing: var(--text-sm-tracking);
+  color: var(--color-fg-default);
+}
+
+.checkbox {
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: 4px;
+  background: var(--color-canvas-default);
+  box-shadow: inset 0px 1px 1px 0px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  position: relative;
+}
+
+.checkbox:checked,
+.checkbox:indeterminate {
+  background-color: var(--color-accent-emphasis);
+  border-color: var(--color-accent-emphasis);
+}
+
+.checkbox:checked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M13.78 4.22a.75.75 0 0 1 0 1.06l-6.5 6.5a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 1 1 1.06-1.06L6.5 9.94l5.97-5.97a.75.75 0 0 1 1.06 0Z'/%3E%3C/svg%3E");
+  background-size: 9px 9px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.checkbox:indeterminate::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 1.5px;
+  background: var(--color-fg-on-emphasis);
+  transform: translate(-50%, -50%);
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--color-accent-emphasis);
+  outline-offset: 2px;
+}
+
+/* Footer — fixed to the bottom of the panel */
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 72px;
+  padding: 0 var(--space-4);
+  border-top: 1px solid var(--color-border-muted);
+  background: var(--color-canvas-default);
+}
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--text-sm-tracking);
+  color: var(--color-fg-accent);
+  cursor: pointer;
+}
+
+.clearButton:disabled {
+  color: var(--color-border-default);
+  cursor: not-allowed;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.cancelButton {
+  padding: 10px 20px;
+  background: var(--color-btn-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-btn);
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-default);
+  cursor: pointer;
+}
+
+.saveButton {
+  padding: 10px 20px;
+  background: var(--color-btn-primary-bg);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-on-emphasis);
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .header,
+  .body,
+  .footer {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}

@@ -97,12 +97,16 @@
   border-color: var(--color-severity-high);
 }
 
-.severityMedium {
-  border-color: var(--color-severity-medium);
+.severityModerate {
+  border-color: var(--color-severity-moderate);
 }
 
 .severityLow {
   border-color: var(--color-severity-low);
+}
+
+.severityInformational {
+  border-color: var(--color-severity-informational);
 }
 
 .cellOwner {
