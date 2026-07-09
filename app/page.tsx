@@ -14,110 +14,21 @@ type Finding = {
   status: string;
 };
 
-const findings: Finding[] = [
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["CloudPlatform: AWS"],
+const findings: Finding[] = Array.from({ length: 9 }, (_, i) => {
+  const n = i + 1;
+  return {
+    title: `Example Finding Title ${n}`,
+    issueRef: `example-tracker #${1000 + n}`,
+    labels: n <= 6 ? ["Category: Example"] : ["--"],
+    extraLabelCount: n >= 4 && n <= 6 ? 5 : undefined,
     severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
+    repo: "example-service",
+    owner: "Example Owner",
+    dueDate: "Jan. 1, 2026",
     daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["CloudPlatform: AWS"],
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["CloudPlatform: AWS"],
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["CloudPlatform: AWS"],
-    extraLabelCount: 5,
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["CloudPlatform: AWS"],
-    extraLabelCount: 5,
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["CloudPlatform: AWS"],
-    extraLabelCount: 5,
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["--"],
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["--"],
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-  {
-    title: "Vulnerabilities Unknown (76474-snmp-getbulk-ddos.yaml)",
-    issueRef: "vuln-mgmt #5983",
-    labels: ["--"],
-    severity: "Critical",
-    repo: "vuln-notifier",
-    owner: "Owner-name",
-    dueDate: "Oct. 6, 2025",
-    daysRemaining: "20 days remaining",
-    status: "Exception",
-  },
-];
+    status: "Example",
+  };
+});
 
 function FindingRow({ finding }: { finding: Finding }) {
   return (
@@ -218,7 +129,7 @@ export default function Home() {
       </nav>
 
       <div className={styles.page}>
-        <h1 className={styles.pageTitle}>10,456 Findings</h1>
+        <h1 className={styles.pageTitle}>9 Findings</h1>
 
         <div className={styles.card}>
           <div className={styles.filterHeader}>
@@ -234,7 +145,7 @@ export default function Home() {
               <span className={styles.filterCounter}>4</span>
             </button>
             <div className={styles.filterTags}>
-              {["FilterName", "FilterName", "FilterName", "FilterName"].map(
+              {["Example Filter", "Example Filter", "Example Filter", "Example Filter"].map(
                 (label, i) => (
                   <span key={i} className={styles.tag}>
                     {label}
@@ -387,7 +298,7 @@ export default function Home() {
                 />
               </button>
             </div>
-            <p className={styles.totalItems}>Total: 9,467 items</p>
+            <p className={styles.totalItems}>Total: 9 items</p>
           </div>
         </div>
       </div>
