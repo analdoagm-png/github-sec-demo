@@ -1,7 +1,11 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
+import Navbar from "./components/Navbar";
+import Pagination from "./components/Pagination";
+import { OWNERS } from "./lib/owners";
+import shared from "./shared.module.css";
 import styles from "./page.module.css";
 
 type Severity = "Critical" | "High" | "Medium" | "Low";
@@ -33,21 +37,6 @@ const FINDING_TEMPLATES: { title: string; severity: Severity; category: string }
   { title: "Container running as root user", severity: "Medium", category: "Container Security" },
   { title: "Missing WAF rule for public endpoint", severity: "Medium", category: "Network Security" },
   { title: "Weak password policy on legacy portal", severity: "Low", category: "Identity & Access" },
-];
-
-const OWNERS: { repo: string; owner: string }[] = [
-  { repo: "payments-api", owner: "Platform Team" },
-  { repo: "auth-service", owner: "Identity Team" },
-  { repo: "web-frontend", owner: "Growth Team" },
-  { repo: "data-pipeline", owner: "Data Eng" },
-  { repo: "billing-service", owner: "Finance Systems" },
-  { repo: "notification-service", owner: "Comms Team" },
-  { repo: "user-service", owner: "Core Platform" },
-  { repo: "search-service", owner: "Search Team" },
-  { repo: "inventory-api", owner: "Commerce Team" },
-  { repo: "edge-gateway", owner: "SRE Team" },
-  { repo: "logging-agent", owner: "Observability" },
-  { repo: "infra-network", owner: "SRE Team" },
 ];
 
 const STATUSES = ["Exception", "In Progress", "Overdue", "Accepted Risk"];
@@ -88,7 +77,6 @@ function buildFindings(count: number): Finding[] {
 }
 
 const ALL_FINDINGS = buildFindings(37);
-const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 const SEVERITY_CLASS: Record<Severity, string> = {
   Critical: styles.severityCritical,
@@ -99,12 +87,12 @@ const SEVERITY_CLASS: Record<Severity, string> = {
 
 function FindingRow({ finding }: { finding: Finding }) {
   return (
-    <div className={styles.tableRow}>
-      <div className={`${styles.cell} ${styles.cellFinding}`}>
+    <div className={shared.tableRow}>
+      <div className={`${shared.cell} ${styles.cellFinding}`}>
         <p className={styles.findingTitle}>{finding.title}</p>
         <p className={styles.findingSubtitle}>{finding.issueRef}</p>
       </div>
-      <div className={`${styles.cell} ${styles.cellState}`}>
+      <div className={`${shared.cell} ${styles.cellState}`}>
         <Image
           src="/icons/issue-opened.svg"
           alt="Open issue"
@@ -112,7 +100,7 @@ function FindingRow({ finding }: { finding: Finding }) {
           height={16}
         />
       </div>
-      <div className={`${styles.cell} ${styles.cellLabels}`}>
+      <div className={`${shared.cell} ${styles.cellLabels}`}>
         {finding.labels.map((label) => (
           <span
             key={label}
@@ -127,14 +115,14 @@ function FindingRow({ finding }: { finding: Finding }) {
           </span>
         ) : null}
       </div>
-      <div className={`${styles.cell} ${styles.cellSeverity}`}>
+      <div className={`${shared.cell} ${shared.colFlex}`}>
         <span
           className={`${styles.severityBadge} ${SEVERITY_CLASS[finding.severity]}`}
         >
           {finding.severity}
         </span>
       </div>
-      <div className={`${styles.cell} ${styles.cellOwner}`}>
+      <div className={`${shared.cell} ${shared.colFlex} ${styles.cellOwner}`}>
         <a className={styles.ownerLink} href="#">
           {finding.repo}
         </a>
@@ -143,13 +131,19 @@ function FindingRow({ finding }: { finding: Finding }) {
           {finding.owner}
         </a>
       </div>
-      <div className={`${styles.cell} ${styles.cellDueDate}`}>
+      <div className={`${shared.cell} ${shared.colFlex} ${styles.cellDueDate}`}>
         <p className={styles.dueDate}>{finding.dueDate}</p>
         <p className={styles.daysRemaining}>{finding.daysRemaining}</p>
       </div>
-      <div className={`${styles.cell} ${styles.cellStatus}`}>
-        <Image src="/icons/zap.svg" alt="" width={16} height={16} />
-        <span className={styles.statusText}>{finding.status}</span>
+      <div className={`${shared.cell} ${shared.colFlex} ${shared.iconRow}`}>
+        <Image
+          className={shared.icon16}
+          src="/icons/zap.svg"
+          alt=""
+          width={16}
+          height={16}
+        />
+        <span className={shared.mutedText}>{finding.status}</span>
       </div>
     </div>
   );
@@ -168,81 +162,33 @@ export default function Home() {
     return ALL_FINDINGS.slice(start, start + pageSize);
   }, [currentPage, pageSize]);
 
-  function goToPage(target: number) {
-    setPage(Math.min(Math.max(1, target), totalPages));
-  }
-
-  function handlePageSizeChange(e: ChangeEvent<HTMLSelectElement>) {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  }
-
   return (
     <div>
-      <nav className={styles.navbar}>
-        <div className={styles.navbarLeft}>
-          <Image
-            className={styles.logo}
-            src="/icons/logo.svg"
-            alt="Company logo"
-            width={183}
-            height={40}
-            priority
-          />
-          <a className={styles.navLink} href="#">
-            Services
-          </a>
-          <a className={`${styles.navLink} ${styles.navLinkActive}`} href="#">
-            Findings
-          </a>
-          <a className={styles.navLink} href="#">
-            Exceptions
-          </a>
-        </div>
-        <div className={styles.navbarRight}>
-          <div className={styles.profile}>
-            <div className={styles.avatar}>
-              <Image
-                src="/icons/avatar.png"
-                alt="User avatar"
-                width={24}
-                height={24}
-              />
-            </div>
-            <Image
-              className={styles.dropdownIcon}
-              src="/icons/triangle-down.svg"
-              alt=""
-              width={16}
-              height={16}
-            />
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
-      <div className={styles.page}>
-        <h1 className={styles.pageTitle}>{totalItems} Findings</h1>
+      <div className={shared.page}>
+        <h1 className={shared.pageTitle}>{totalItems} Findings</h1>
 
-        <div className={styles.card}>
-          <div className={styles.filterHeader}>
-            <button className={styles.filterButton} type="button">
+        <div className={shared.card}>
+          <div className={shared.filterHeader}>
+            <button className={shared.filterButton} type="button">
               <Image
-                className={styles.filterIcon}
+                className={shared.filterIcon}
                 src="/icons/filter.svg"
                 alt=""
                 width={16}
                 height={16}
               />
               <span>Filter</span>
-              <span className={styles.filterCounter}>4</span>
+              <span className={shared.filterCounter}>4</span>
             </button>
-            <div className={styles.filterTags}>
+            <div className={shared.filterTags}>
               {["Critical", "High", "Cloud Infrastructure", "Identity & Access"].map(
                 (label, i) => (
-                  <span key={i} className={styles.tag}>
+                  <span key={i} className={shared.tag}>
                     {label}
                     <Image
-                      className={styles.tagDismiss}
+                      className={shared.tagDismiss}
                       src="/icons/dismiss.svg"
                       alt="Remove filter"
                       width={16}
@@ -253,77 +199,77 @@ export default function Home() {
               )}
             </div>
             <input
-              className={styles.searchInput}
+              className={shared.searchInput}
               type="text"
               placeholder="Search"
             />
           </div>
 
-          <div className={styles.tableHeaderRow}>
-            <div className={`${styles.headerCell} ${styles.colFinding}`}>
+          <div className={shared.tableHeaderRow}>
+            <div className={`${shared.headerCell} ${styles.colFinding}`}>
               <span>Finding</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
                 height={20}
               />
             </div>
-            <div className={`${styles.headerCell} ${styles.colState}`}>
+            <div className={`${shared.headerCell} ${styles.colState}`}>
               <span>State</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
                 height={20}
               />
             </div>
-            <div className={`${styles.headerCell} ${styles.colLabels}`}>
+            <div className={`${shared.headerCell} ${styles.colLabels}`}>
               <span>Labels</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
                 height={20}
               />
             </div>
-            <div className={`${styles.headerCell} ${styles.colFlex}`}>
+            <div className={`${shared.headerCell} ${shared.colFlex}`}>
               <span>Severity</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
                 height={20}
               />
             </div>
-            <div className={`${styles.headerCell} ${styles.colFlex}`}>
+            <div className={`${shared.headerCell} ${shared.colFlex}`}>
               <span>Service / Owner</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
                 height={20}
               />
             </div>
-            <div className={`${styles.headerCell} ${styles.colFlex}`}>
+            <div className={`${shared.headerCell} ${shared.colFlex}`}>
               <span>Due Date</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
                 height={20}
               />
             </div>
-            <div className={`${styles.headerCell} ${styles.colFlex}`}>
+            <div className={`${shared.headerCell} ${shared.colFlex}`}>
               <span>SLA Status</span>
               <Image
-                className={styles.selectorIcon}
+                className={shared.selectorIcon}
                 src="/icons/selector.svg"
                 alt=""
                 width={20}
@@ -336,72 +282,21 @@ export default function Home() {
             <FindingRow key={finding.issueRef} finding={finding} />
           ))}
 
-          <p className={styles.disclaimer}>
+          <p className={shared.disclaimer}>
             The security findings shown are based on your service catalog
             ownership and collaboration.
           </p>
 
-          <div className={styles.pagination}>
-            <div className={styles.resultsPerPage}>
-              <select
-                className={styles.resultsSelect}
-                value={pageSize}
-                onChange={handlePageSizeChange}
-              >
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-              <span className={styles.resultsLabel}>Results per page</span>
-            </div>
-            <div className={styles.paginationNav}>
-              <button
-                className={styles.pageBtn}
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => goToPage(currentPage - 1)}
-              >
-                <Image
-                  className={styles.chevronIcon}
-                  src="/icons/chevron-left.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                />
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (pageNumber) => (
-                  <button
-                    key={pageNumber}
-                    className={`${styles.pageBtn} ${pageNumber === currentPage ? styles.pageBtnActive : ""}`}
-                    type="button"
-                    onClick={() => goToPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </button>
-                ),
-              )}
-              <button
-                className={`${styles.pageBtn} ${styles.pageBtnLink}`}
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => goToPage(currentPage + 1)}
-              >
-                Next
-                <Image
-                  className={styles.chevronIcon}
-                  src="/icons/chevron-right.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                />
-              </button>
-            </div>
-            <p className={styles.totalItems}>Total: {totalItems} items</p>
-          </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </div>
