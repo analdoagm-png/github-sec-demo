@@ -67,15 +67,24 @@ const STATS = [
 ];
 
 function ServiceTableRow({ row }: { row: ServiceRow }) {
+  const rowStyle = {
+    "--row-accent":
+      row.missedCritical > 0
+        ? "var(--color-severity-critical)"
+        : "var(--color-border-muted)",
+  } as React.CSSProperties;
+
   return (
-    <div className={shared.tableRow}>
+    <div className={shared.tableRow} style={rowStyle}>
       <div className={`${shared.cell} ${styles.colServices}`}>
         <span className={styles.serviceName}>{row.service}</span>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${shared.mutedText}`}>
+        <span className={shared.mobileLabel}>Team/Owner</span>
         {row.team}
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${styles.stackedCell}`}>
+        <span className={shared.mobileLabel}>Most Overdue Finding</span>
         <p className={styles.overdueDays}>{row.overdueDays} Days</p>
         <p className={styles.overdueSeverity}>
           Severity: {row.overdueSeverity}
@@ -104,6 +113,7 @@ function ServiceTableRow({ row }: { row: ServiceRow }) {
         <span className={shared.mutedText}>Near SLA</span>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${shared.iconRow}`}>
+        <span className={shared.mobileLabel}>In SLA</span>
         <Image
           className={shared.icon16}
           src="/icons/check-circle.svg"

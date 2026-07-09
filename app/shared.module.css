@@ -1,6 +1,10 @@
 /* Chrome shared across pages: navbar, page shell, filter header, table
    scaffolding and pagination. Page-specific cell styles live in each
-   route's own CSS module. */
+   route's own CSS module.
+
+   Breakpoints (kept consistent across every module in this app):
+     tablet: max-width 1024px
+     mobile: max-width 700px */
 
 .navbar {
   position: sticky;
@@ -353,4 +357,127 @@
   font-size: var(--text-sm-size);
   letter-spacing: var(--text-sm-tracking);
   color: var(--color-fg-muted);
+}
+
+/* Mobile-only eyebrow label, printed above a cell's value once the table
+   header row (the thing that would normally explain the cell) is hidden. */
+
+.mobileLabel {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- */
+/* Responsive                                                        */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 0 var(--space-4);
+  }
+
+  .navbarLeft {
+    gap: var(--space-3);
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .navbarLeft::-webkit-scrollbar {
+    display: none;
+  }
+
+  .logo {
+    flex-shrink: 0;
+  }
+
+  .navLink {
+    flex-shrink: 0;
+  }
+
+  .page {
+    padding: var(--space-4);
+  }
+
+  .filterHeader {
+    flex-wrap: wrap;
+  }
+
+  .filterTags {
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  .searchInput {
+    order: 2;
+    flex-basis: 100%;
+    width: auto;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+  }
+
+  .totalItems {
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: var(--space-3);
+  }
+
+  .pageTitle {
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .logo {
+    width: 130px;
+    height: auto;
+  }
+
+  .navLink {
+    font-size: 13px;
+  }
+
+  /* Column headings only make sense above a real grid; the cards below
+     carry their own inline labels instead. */
+  .tableHeaderRow {
+    display: none;
+  }
+
+  .tableRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-left: 3px solid var(--row-accent, var(--color-border-muted));
+  }
+
+  .cell {
+    width: auto;
+    height: auto;
+    padding: 0;
+    flex-wrap: wrap;
+  }
+
+  /* flex-basis: 100% forces a line break after the label inside any
+     row-direction cell, so the value always starts on its own line —
+     without having to flip every cell to flex-direction: column. */
+  .mobileLabel {
+    display: block;
+    flex-basis: 100%;
+    width: 100%;
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-line);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-fg-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: var(--space-1);
+  }
 }

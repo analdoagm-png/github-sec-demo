@@ -16,6 +16,7 @@
 
 .cellFinding {
   flex-direction: column;
+  flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: center;
   gap: var(--space-2);
@@ -118,6 +119,7 @@
 
 .cellDueDate {
   flex-direction: column;
+  flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: center;
   gap: var(--space-1);
@@ -134,4 +136,27 @@
   font-weight: var(--font-weight-regular);
   letter-spacing: var(--text-sm-tracking);
   color: var(--color-fg-subtle);
+}
+
+/* Responsive — see app/shared.module.css for the shared breakpoints and
+   the table -> card transformation this builds on. */
+
+@media (max-width: 700px) {
+  .cellFinding {
+    width: auto;
+    height: auto;
+    gap: var(--space-1);
+  }
+
+  .findingTitle,
+  .findingSubtitle {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .cellLabels {
+    width: auto;
+    flex-wrap: wrap;
+  }
 }

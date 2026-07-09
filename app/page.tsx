@@ -85,14 +85,24 @@ const SEVERITY_CLASS: Record<Severity, string> = {
   Low: styles.severityLow,
 };
 
+const SEVERITY_ACCENT: Record<Severity, string> = {
+  Critical: "var(--color-severity-critical)",
+  High: "var(--color-severity-high)",
+  Medium: "var(--color-severity-medium)",
+  Low: "var(--color-severity-low)",
+};
+
 function FindingRow({ finding }: { finding: Finding }) {
+  const rowStyle = { "--row-accent": SEVERITY_ACCENT[finding.severity] } as React.CSSProperties;
+
   return (
-    <div className={shared.tableRow}>
+    <div className={shared.tableRow} style={rowStyle}>
       <div className={`${shared.cell} ${styles.cellFinding}`}>
         <p className={styles.findingTitle}>{finding.title}</p>
         <p className={styles.findingSubtitle}>{finding.issueRef}</p>
       </div>
       <div className={`${shared.cell} ${styles.cellState}`}>
+        <span className={shared.mobileLabel}>State</span>
         <Image
           src="/icons/issue-opened.svg"
           alt="Open issue"
@@ -101,6 +111,7 @@ function FindingRow({ finding }: { finding: Finding }) {
         />
       </div>
       <div className={`${shared.cell} ${styles.cellLabels}`}>
+        <span className={shared.mobileLabel}>Labels</span>
         {finding.labels.map((label) => (
           <span
             key={label}
@@ -116,6 +127,7 @@ function FindingRow({ finding }: { finding: Finding }) {
         ) : null}
       </div>
       <div className={`${shared.cell} ${shared.colFlex}`}>
+        <span className={shared.mobileLabel}>Severity</span>
         <span
           className={`${styles.severityBadge} ${SEVERITY_CLASS[finding.severity]}`}
         >
@@ -123,6 +135,7 @@ function FindingRow({ finding }: { finding: Finding }) {
         </span>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${styles.cellOwner}`}>
+        <span className={shared.mobileLabel}>Service / Owner</span>
         <a className={styles.ownerLink} href="#">
           {finding.repo}
         </a>
@@ -132,10 +145,12 @@ function FindingRow({ finding }: { finding: Finding }) {
         </a>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${styles.cellDueDate}`}>
+        <span className={shared.mobileLabel}>Due Date</span>
         <p className={styles.dueDate}>{finding.dueDate}</p>
         <p className={styles.daysRemaining}>{finding.daysRemaining}</p>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${shared.iconRow}`}>
+        <span className={shared.mobileLabel}>SLA Status</span>
         <Image
           className={shared.icon16}
           src="/icons/zap.svg"

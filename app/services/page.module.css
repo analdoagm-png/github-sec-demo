@@ -114,6 +114,7 @@
 
 .stackedCell {
   flex-direction: column;
+  flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: center;
   gap: var(--space-1);
@@ -159,4 +160,30 @@
 
 .missedSlaCount {
   font-weight: var(--font-weight-semibold);
+}
+
+/* Responsive — see app/shared.module.css for the shared breakpoints and
+   the table -> card transformation this builds on. */
+
+@media (max-width: 1024px) {
+  .statsRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+  }
+
+  .statTotal {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .colServices {
+    width: auto;
+  }
 }
