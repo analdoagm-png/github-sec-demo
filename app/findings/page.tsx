@@ -2,18 +2,18 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import FilterPanel from "./components/FilterPanel";
-import Navbar from "./components/Navbar";
-import Pagination from "./components/Pagination";
+import FilterPanel from "../components/FilterPanel";
+import Navbar from "../components/Navbar";
+import Pagination from "../components/Pagination";
 import {
   createEmptyFilterState,
   countSelected,
   getActiveChips,
   matchesFilters,
   type FilterState,
-} from "./lib/filters";
-import { OWNERS } from "./lib/owners";
-import shared from "./shared.module.css";
+} from "../lib/filters";
+import { OWNERS } from "../lib/owners";
+import shared from "../shared.module.css";
 import styles from "./page.module.css";
 
 type Severity = "Critical" | "High" | "Moderate" | "Low" | "Informational";
@@ -183,7 +183,7 @@ function FindingRow({ finding }: { finding: Finding }) {
   );
 }
 
-export default function Home() {
+export default function FindingsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
