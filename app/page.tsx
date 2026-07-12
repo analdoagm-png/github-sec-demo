@@ -2,217 +2,168 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import FilterPanel from "./components/FilterPanel";
-import Navbar from "./components/Navbar";
-import Pagination from "./components/Pagination";
+import FilterPanel from "../components/FilterPanel";
+import Navbar from "../components/Navbar";
+import Pagination from "../components/Pagination";
 import {
   createEmptyFilterState,
   countSelected,
   getActiveChips,
   matchesFilters,
   type FilterState,
-} from "./lib/filters";
-import { OWNERS } from "./lib/owners";
-import shared from "./shared.module.css";
+} from "../lib/filters";
+import { OWNERS } from "../lib/owners";
+import shared from "../shared.module.css";
 import styles from "./page.module.css";
 
-type Severity = "Critical" | "High" | "Moderate" | "Low" | "Informational";
-type FindingState = "Open" | "Reopened" | "False Positive" | "Risk Acceptance" | "Closed";
-type SlaStatus = "In SLA" | "Near SLA" | "Missed SLA" | "Exception" | "Remediated";
-type ExceptionStatus = "Active" | "Archived" | "Expired" | "Pending" | "Denied";
-
-type Finding = {
-  title: string;
-  issueRef: string;
-  labels: string[];
-  extraLabelCount?: number;
-  severity: Severity;
-  repo: string;
-  owner: string;
-  dueDate: string;
-  daysRemaining: string;
-  state: FindingState;
-  slaStatus: SlaStatus;
-  exceptionStatus: ExceptionStatus;
+type ServiceRow = {
+  service: string;
+  team: string;
+  overdueDays: number;
+  overdueSeverity: string;
+  missedCritical: number;
+  missedHigh: number;
+  inSla: number;
 };
 
-const FINDING_TEMPLATES: { title: string; severity: Severity; category: string }[] = [
-  { title: "Publicly readable storage bucket detected", severity: "Critical", category: "Cloud Infrastructure" },
-  { title: "Hardcoded API credential in source", severity: "Critical", category: "Secrets Management" },
-  { title: "Unencrypted database snapshot", severity: "Critical", category: "Data Protection" },
-  { title: "SSH port open to 0.0.0.0/0", severity: "Critical", category: "Network Security" },
-  { title: "Unpatched CVE in base container image", severity: "High", category: "Container Security" },
-  { title: "Missing MFA enforcement for admin role", severity: "High", category: "Identity & Access" },
-  { title: "Excessive IAM permissions on service role", severity: "High", category: "Identity & Access" },
-  { title: "Outdated dependency with known vulnerability", severity: "High", category: "Application Security" },
-  { title: "TLS certificate expiring within 30 days", severity: "Moderate", category: "Network Security" },
-  { title: "Sensitive data logged in plaintext", severity: "Moderate", category: "Data Protection" },
-  { title: "Container running as root user", severity: "Moderate", category: "Container Security" },
-  { title: "Missing WAF rule for public endpoint", severity: "Moderate", category: "Network Security" },
-  { title: "Weak password policy on legacy portal", severity: "Low", category: "Identity & Access" },
-  { title: "Verbose error messages expose stack traces", severity: "Informational", category: "Application Security" },
+const OVERDUE_POOL = [
+  { days: 5, severity: "Critical" },
+  { days: 12, severity: "High" },
+  { days: 19, severity: "Moderate" },
+  { days: 34, severity: "Low" },
+  { days: 47, severity: "Informational" },
+  { days: 61, severity: "High" },
 ];
 
-const STATES: FindingState[] = ["Open", "Reopened", "False Positive", "Risk Acceptance", "Closed"];
-const SLA_STATUSES: SlaStatus[] = ["In SLA", "Near SLA", "Missed SLA", "Exception", "Remediated"];
-const EXCEPTION_STATUSES: ExceptionStatus[] = ["Active", "Archived", "Expired", "Pending", "Denied"];
-
-const DUE_DATES: { date: string; remaining: string }[] = [
-  { date: "Jul 15, 2026", remaining: "6 days remaining" },
-  { date: "Jul 22, 2026", remaining: "13 days remaining" },
-  { date: "Aug 1, 2026", remaining: "23 days remaining" },
-  { date: "Aug 15, 2026", remaining: "37 days remaining" },
-  { date: "Jun 30, 2026", remaining: "9 days overdue" },
-  { date: "Jul 9, 2026", remaining: "Due today" },
-  { date: "Sep 1, 2026", remaining: "54 days remaining" },
+const MISSED_SLA_POOL = [
+  { critical: 23, high: 12 },
+  { critical: 8, high: 19 },
+  { critical: 15, high: 6 },
+  { critical: 2, high: 31 },
+  { critical: 11, high: 9 },
 ];
 
-function buildFindings(count: number): Finding[] {
+const IN_SLA_POOL = [427, 318, 512, 289, 601, 375];
+
+function buildServices(count: number): ServiceRow[] {
   return Array.from({ length: count }, (_, i) => {
-    const template = FINDING_TEMPLATES[i % FINDING_TEMPLATES.length];
-    const ownerInfo = OWNERS[i % OWNERS.length];
-    const due = DUE_DATES[i % DUE_DATES.length];
-    const noLabel = i % 11 === 10;
-    const labels = noLabel ? ["--"] : [template.category];
-    const extraLabelCount = !noLabel && i % 5 === 4 ? 3 : undefined;
+    const owner = OWNERS[i % OWNERS.length];
+    const overdue = OVERDUE_POOL[i % OVERDUE_POOL.length];
+    const missed = MISSED_SLA_POOL[i % MISSED_SLA_POOL.length];
+    const inSla = IN_SLA_POOL[i % IN_SLA_POOL.length];
 
     return {
-      title: template.title,
-      issueRef: `sec-tracker #${1000 + i}`,
-      labels,
-      extraLabelCount,
-      severity: template.severity,
-      repo: ownerInfo.repo,
-      owner: ownerInfo.owner,
-      dueDate: due.date,
-      daysRemaining: due.remaining,
-      state: STATES[i % STATES.length],
-      slaStatus: SLA_STATUSES[i % SLA_STATUSES.length],
-      exceptionStatus: EXCEPTION_STATUSES[i % EXCEPTION_STATUSES.length],
+      service: owner.repo,
+      team: owner.owner,
+      overdueDays: overdue.days,
+      overdueSeverity: overdue.severity,
+      missedCritical: missed.critical,
+      missedHigh: missed.high,
+      inSla,
     };
   });
 }
 
-const ALL_FINDINGS = buildFindings(37);
+const ALL_SERVICES = buildServices(34);
 
-const SEVERITY_CLASS: Record<Severity, string> = {
-  Critical: styles.severityCritical,
-  High: styles.severityHigh,
-  Moderate: styles.severityModerate,
-  Low: styles.severityLow,
-  Informational: styles.severityInformational,
-};
+const STATS = [
+  { label: "Missed SLA", value: "1,072", icon: "x-circle", trendIcon: "arrow-up-right", trendValue: "96", trendCaption: "more than last month" },
+  { label: "In SLA", value: "1,651", icon: "check-circle", trendIcon: "arrow-down-left", trendValue: "35", trendCaption: "less than last month" },
+  { label: "Near SLA", value: "2,299", icon: "alert", trendIcon: "arrow-up-right", trendValue: "268", trendCaption: "more than last month" },
+  { label: "Exceptions", value: "169", icon: "zap", trendIcon: "arrow-up-right", trendValue: "2", trendCaption: "more than last month" },
+  { label: "Remediated", value: "478", icon: "tools", trendIcon: "arrow-down-left", trendValue: "6", trendCaption: "less than last month" },
+];
 
-const SEVERITY_ACCENT: Record<Severity, string> = {
-  Critical: "var(--color-severity-critical)",
-  High: "var(--color-severity-high)",
-  Moderate: "var(--color-severity-moderate)",
-  Low: "var(--color-severity-low)",
-  Informational: "var(--color-severity-informational)",
-};
-
-function FindingRow({ finding }: { finding: Finding }) {
-  const rowStyle = { "--row-accent": SEVERITY_ACCENT[finding.severity] } as React.CSSProperties;
+function ServiceTableRow({ row }: { row: ServiceRow }) {
+  const rowStyle = {
+    "--row-accent":
+      row.missedCritical > 0
+        ? "var(--color-severity-critical)"
+        : "var(--color-border-muted)",
+  } as React.CSSProperties;
 
   return (
     <div className={shared.tableRow} style={rowStyle}>
-      <div className={`${shared.cell} ${styles.cellFinding}`}>
-        <p className={styles.findingTitle}>{finding.title}</p>
-        <p className={styles.findingSubtitle}>{finding.issueRef}</p>
+      <div className={`${shared.cell} ${styles.colServices}`}>
+        <span className={styles.serviceName}>{row.service}</span>
       </div>
-      <div className={`${shared.cell} ${styles.cellState}`}>
-        <span className={shared.mobileLabel}>State</span>
-        <Image
-          src={finding.state === "Closed" ? "/icons/check-circle.svg" : "/icons/issue-opened.svg"}
-          alt={finding.state}
-          width={16}
-          height={16}
-        />
+      <div className={`${shared.cell} ${shared.colFlex} ${shared.mutedText}`}>
+        <span className={shared.mobileLabel}>Team/Owner</span>
+        {row.team}
       </div>
-      <div className={`${shared.cell} ${styles.cellLabels}`}>
-        <span className={shared.mobileLabel}>Labels</span>
-        {finding.labels.map((label) => (
-          <span
-            key={label}
-            className={`${styles.labelPill} ${label === "--" ? styles.labelPillMuted : ""}`}
-          >
-            {label}
-          </span>
-        ))}
-        {finding.extraLabelCount ? (
-          <span className={`${styles.labelPill} ${styles.labelPillCount}`}>
-            +{finding.extraLabelCount}
-          </span>
-        ) : null}
+      <div className={`${shared.cell} ${shared.colFlex} ${styles.stackedCell}`}>
+        <span className={shared.mobileLabel}>Most Overdue Finding</span>
+        <p className={styles.overdueDays}>{row.overdueDays} Days</p>
+        <p className={styles.overdueSeverity}>
+          Severity: {row.overdueSeverity}
+        </p>
       </div>
       <div className={`${shared.cell} ${shared.colFlex}`}>
-        <span className={shared.mobileLabel}>Severity</span>
-        <span
-          className={`${styles.severityBadge} ${SEVERITY_CLASS[finding.severity]}`}
-        >
-          {finding.severity}
-        </span>
-      </div>
-      <div className={`${shared.cell} ${shared.colFlex} ${styles.cellOwner}`}>
-        <span className={shared.mobileLabel}>Service / Owner</span>
-        <a className={styles.ownerLink} href="#">
-          {finding.repo}
-        </a>
-        {" / "}
-        <a className={styles.ownerLink} href="#">
-          {finding.owner}
-        </a>
-      </div>
-      <div className={`${shared.cell} ${shared.colFlex} ${styles.cellDueDate}`}>
-        <span className={shared.mobileLabel}>Due Date</span>
-        <p className={styles.dueDate}>{finding.dueDate}</p>
-        <p className={styles.daysRemaining}>{finding.daysRemaining}</p>
+        <div className={styles.missedSlaCell}>
+          <div className={styles.missedSlaHeader}>
+            <Image
+              src="/icons/x-circle.svg"
+              alt=""
+              width={16}
+              height={16}
+            />
+            <span className={styles.missedSlaHeaderText}>Missed SLA</span>
+          </div>
+          <p className={styles.missedSlaBreakdown}>
+            <span className={styles.missedSlaCount}>{row.missedCritical}</span>{" "}
+            Critical - <span className={styles.missedSlaCount}>{row.missedHigh}</span>{" "}
+            High
+          </p>
+        </div>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${shared.iconRow}`}>
-        <span className={shared.mobileLabel}>SLA Status</span>
+        <Image className={shared.icon16} src="/icons/alert.svg" alt="" width={16} height={16} />
+        <span className={shared.mutedText}>Near SLA</span>
+      </div>
+      <div className={`${shared.cell} ${shared.colFlex} ${shared.iconRow}`}>
+        <span className={shared.mobileLabel}>In SLA</span>
         <Image
           className={shared.icon16}
-          src="/icons/zap.svg"
+          src="/icons/check-circle.svg"
           alt=""
           width={16}
           height={16}
         />
-        <span className={shared.mutedText}>{finding.slaStatus}</span>
+        <span className={shared.mutedText}>{row.inSla}</span>
+      </div>
+      <div className={`${shared.cell} ${shared.colFlex} ${shared.iconRow}`}>
+        <Image className={shared.icon16} src="/icons/zap.svg" alt="" width={16} height={16} />
+        <span className={shared.mutedText}>Exception</span>
       </div>
     </div>
   );
 }
 
-export default function Home() {
+export default function ServicesPage() {
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(createEmptyFilterState);
 
-  const filteredFindings = useMemo(
+  // Services rows only carry a severity (via their most-overdue finding) —
+  // State/SLA Status/Exception Status are per-finding concepts, so those
+  // fieldsets stay visible in the shared panel but don't constrain this table.
+  const filteredServices = useMemo(
     () =>
-      ALL_FINDINGS.filter((finding) =>
-        matchesFilters(
-          {
-            state: finding.state,
-            severity: finding.severity,
-            slaStatus: finding.slaStatus,
-            exceptionStatus: finding.exceptionStatus,
-          },
-          appliedFilters,
-        ),
+      ALL_SERVICES.filter((row) =>
+        matchesFilters({ severity: row.overdueSeverity }, appliedFilters),
       ),
     [appliedFilters],
   );
 
-  const totalItems = filteredFindings.length;
+  const totalItems = filteredServices.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const currentPage = Math.min(page, totalPages);
 
-  const visibleFindings = useMemo(() => {
+  const visibleServices = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredFindings.slice(start, start + pageSize);
-  }, [filteredFindings, currentPage, pageSize]);
+    return filteredServices.slice(start, start + pageSize);
+  }, [filteredServices, currentPage, pageSize]);
 
   const activeChips = getActiveChips(appliedFilters);
 
@@ -220,9 +171,9 @@ export default function Home() {
     setAppliedFilters((prev) => {
       const next = { ...prev, [groupKey]: new Set(prev[groupKey]) };
       next[groupKey].delete(value);
-      setPage(1);
       return next;
     });
+    setPage(1);
   }
 
   function handleApplyFilters(next: FilterState) {
@@ -235,7 +186,47 @@ export default function Home() {
       <Navbar />
 
       <div className={shared.page}>
-        <h1 className={shared.pageTitle}>{ALL_FINDINGS.length} Findings</h1>
+        <h1 className={shared.pageTitle}>Services</h1>
+
+        <div className={styles.statsRow}>
+          <div className={styles.statTotal}>
+            <p className={styles.statTotalLabel}>Total Security Findings</p>
+            <div className={styles.statTotalAmountRow}>
+              <span className={styles.statTotalAmount}>5,022</span>
+              <span className={styles.statTotalChange}>21.5% critical</span>
+            </div>
+            <p className={styles.statTotalSubtitle}>
+              Since the beginning of time
+            </p>
+          </div>
+
+          {STATS.map((stat) => (
+            <div key={stat.label} className={styles.statCard}>
+              <div className={styles.statValue}>{stat.value}</div>
+              <div className={styles.statLabelRow}>
+                <Image
+                  src={`/icons/${stat.icon}.svg`}
+                  alt=""
+                  width={16}
+                  height={16}
+                />
+                <span className={shared.mutedText}>{stat.label}</span>
+              </div>
+              <div className={styles.statTrendRow}>
+                <div className={styles.trendIndicator}>
+                  <Image
+                    src={`/icons/${stat.trendIcon}.svg`}
+                    alt=""
+                    width={16}
+                    height={16}
+                  />
+                  <span className={styles.trendValue}>{stat.trendValue}</span>
+                </div>
+                <span className={styles.trendValue}>{stat.trendCaption}</span>
+              </div>
+            </div>
+          ))}
+        </div>
 
         <div className={shared.card}>
           <div className={shared.filterHeader}>
@@ -287,28 +278,8 @@ export default function Home() {
           </div>
 
           <div className={shared.tableHeaderRow}>
-            <div className={`${shared.headerCell} ${styles.colFinding}`}>
-              <span>Finding</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${styles.colState}`}>
-              <span>State</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${styles.colLabels}`}>
-              <span>Labels</span>
+            <div className={`${shared.headerCell} ${styles.colServices}`}>
+              <span>Services</span>
               <Image
                 className={shared.selectorIcon}
                 src="/icons/selector.svg"
@@ -318,7 +289,7 @@ export default function Home() {
               />
             </div>
             <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Severity</span>
+              <span>Team/Owner</span>
               <Image
                 className={shared.selectorIcon}
                 src="/icons/selector.svg"
@@ -328,7 +299,7 @@ export default function Home() {
               />
             </div>
             <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Service / Owner</span>
+              <span>Most Overdue Finding</span>
               <Image
                 className={shared.selectorIcon}
                 src="/icons/selector.svg"
@@ -338,7 +309,7 @@ export default function Home() {
               />
             </div>
             <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Due Date</span>
+              <span>Missed SLA</span>
               <Image
                 className={shared.selectorIcon}
                 src="/icons/selector.svg"
@@ -348,7 +319,27 @@ export default function Home() {
               />
             </div>
             <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>SLA Status</span>
+              <span>Near SLA</span>
+              <Image
+                className={shared.selectorIcon}
+                src="/icons/selector.svg"
+                alt=""
+                width={20}
+                height={20}
+              />
+            </div>
+            <div className={`${shared.headerCell} ${shared.colFlex}`}>
+              <span>In SLA</span>
+              <Image
+                className={shared.selectorIcon}
+                src="/icons/selector.svg"
+                alt=""
+                width={20}
+                height={20}
+              />
+            </div>
+            <div className={`${shared.headerCell} ${shared.colFlex}`}>
+              <span>Exceptions</span>
               <Image
                 className={shared.selectorIcon}
                 src="/icons/selector.svg"
@@ -359,20 +350,15 @@ export default function Home() {
             </div>
           </div>
 
-          {visibleFindings.length > 0 ? (
-            visibleFindings.map((finding) => (
-              <FindingRow key={finding.issueRef} finding={finding} />
+          {visibleServices.length > 0 ? (
+            visibleServices.map((row, i) => (
+              <ServiceTableRow key={`${row.service}-${i}`} row={row} />
             ))
           ) : (
             <p className={shared.disclaimer}>
-              No findings match the selected filters.
+              No services match the selected filters.
             </p>
           )}
-
-          <p className={shared.disclaimer}>
-            The security findings shown are based on your service catalog
-            ownership and collaboration.
-          </p>
 
           <Pagination
             page={page}

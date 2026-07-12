@@ -1,0 +1,166 @@
+/* Findings-page-specific cell styles adapted from Figma frame
+   "findings-index" (node 56:2198). Shared nav/table/pagination chrome
+   lives in app/shared.module.css. */
+
+.colFinding {
+  width: 352px;
+}
+
+.colState {
+  width: 96px;
+}
+
+.colLabels {
+  width: 256px;
+}
+
+.cellFinding {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 96px;
+  width: 352px;
+  overflow: hidden;
+}
+
+.findingTitle {
+  width: 100%;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-link);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.findingSubtitle {
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-line);
+  color: var(--color-fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellState {
+  width: 96px;
+}
+
+.cellLabels {
+  width: 256px;
+  gap: var(--space-3);
+}
+
+.labelPill {
+  display: flex;
+  align-items: center;
+  padding: 3px var(--space-3);
+  background: var(--color-accent-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs-size);
+  line-height: 18px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-accent);
+  white-space: nowrap;
+}
+
+.labelPillMuted {
+  background: transparent;
+}
+
+.labelPillCount {
+  background: var(--color-accent-emphasis);
+  color: var(--color-fg-on-emphasis);
+}
+
+.severityBadge {
+  display: flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-severity-critical);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs-size);
+  line-height: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-default);
+  white-space: nowrap;
+}
+
+.severityCritical {
+  border-color: var(--color-severity-critical);
+}
+
+.severityHigh {
+  border-color: var(--color-severity-high);
+}
+
+.severityModerate {
+  border-color: var(--color-severity-moderate);
+}
+
+.severityLow {
+  border-color: var(--color-severity-low);
+}
+
+.severityInformational {
+  border-color: var(--color-severity-informational);
+}
+
+.cellOwner {
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
+  letter-spacing: var(--text-sm-tracking);
+  color: var(--color-fg-muted);
+}
+
+.ownerLink {
+  color: var(--color-fg-link);
+  text-decoration: underline;
+}
+
+.cellDueDate {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
+}
+
+.dueDate {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-muted);
+}
+
+.daysRemaining {
+  font-weight: var(--font-weight-regular);
+  letter-spacing: var(--text-sm-tracking);
+  color: var(--color-fg-subtle);
+}
+
+/* Responsive — see app/shared.module.css for the shared breakpoints and
+   the table -> card transformation this builds on. */
+
+@media (max-width: 700px) {
+  .cellFinding {
+    width: auto;
+    height: auto;
+    gap: var(--space-1);
+  }
+
+  .findingTitle,
+  .findingSubtitle {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .cellLabels {
+    width: auto;
+    flex-wrap: wrap;
+  }
+}

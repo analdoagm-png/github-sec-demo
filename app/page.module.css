@@ -1,127 +1,118 @@
-/* Findings-page-specific cell styles adapted from Figma frame
-   "findings-index" (node 56:2198). Shared nav/table/pagination chrome
+/* Services-page-specific styles adapted from Figma frame
+   "services-index" (node 62:10284). Shared nav/table/pagination chrome
    lives in app/shared.module.css. */
 
-.colFinding {
-  width: 352px;
-}
-
-.colState {
-  width: 96px;
-}
-
-.colLabels {
-  width: 256px;
-}
-
-.cellFinding {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--space-2);
-  height: 96px;
-  width: 352px;
-  overflow: hidden;
-}
-
-.findingTitle {
-  width: 100%;
-  font-size: var(--text-sm-size);
-  line-height: var(--text-sm-line);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-fg-link);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.findingSubtitle {
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-line);
-  color: var(--color-fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cellState {
-  width: 96px;
-}
-
-.cellLabels {
-  width: 256px;
+.statsRow {
+  display: flex;
+  align-items: stretch;
   gap: var(--space-3);
+  width: 100%;
 }
 
-.labelPill {
+.statTotal {
   display: flex;
-  align-items: center;
-  padding: 3px var(--space-3);
-  background: var(--color-accent-subtle);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs-size);
-  line-height: 18px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-fg-accent);
-  white-space: nowrap;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 296px;
+  padding: 20px var(--space-4);
+  background: var(--color-canvas-default);
+  border: 1px solid var(--color-border-stat-total);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-stat-total);
+  flex-shrink: 0;
 }
 
-.labelPillMuted {
-  background: transparent;
+.statTotalLabel {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--color-stat-value);
 }
 
-.labelPillCount {
-  background: var(--color-accent-emphasis);
-  color: var(--color-fg-on-emphasis);
-}
-
-.severityBadge {
+.statTotalAmountRow {
   display: flex;
-  align-items: center;
-  padding: 1px var(--space-2);
-  border: 1px solid var(--color-severity-critical);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs-size);
-  line-height: 16px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-fg-default);
-  white-space: nowrap;
+  align-items: flex-end;
+  gap: var(--space-2);
 }
 
-.severityCritical {
-  border-color: var(--color-severity-critical);
+.statTotalAmount {
+  font-size: var(--text-lg-size);
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: var(--text-lg-tracking);
+  color: var(--color-stat-total-value);
 }
 
-.severityHigh {
-  border-color: var(--color-severity-high);
-}
-
-.severityModerate {
-  border-color: var(--color-severity-moderate);
-}
-
-.severityLow {
-  border-color: var(--color-severity-low);
-}
-
-.severityInformational {
-  border-color: var(--color-severity-informational);
-}
-
-.cellOwner {
+.statTotalChange {
   font-size: var(--text-sm-size);
   line-height: var(--text-sm-line);
   letter-spacing: var(--text-sm-tracking);
+  color: var(--color-severity-critical);
+}
+
+.statTotalSubtitle {
+  font-size: var(--text-xs-size);
+  line-height: var(--text-sm-line);
   color: var(--color-fg-muted);
 }
 
-.ownerLink {
-  color: var(--color-fg-link);
-  text-decoration: underline;
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 0 0;
+  min-width: 0;
+  padding: 20px var(--space-3);
+  background: var(--color-canvas-default);
+  border: 1px solid var(--color-border-stat);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-stat-card);
 }
 
-.cellDueDate {
+.statValue {
+  font-size: var(--text-lg-size);
+  line-height: 36px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--text-lg-tracking);
+  color: var(--color-stat-value);
+}
+
+.statLabelRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.statTrendRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.trendIndicator {
+  display: flex;
+  align-items: center;
+}
+
+.trendValue {
+  font-size: var(--text-xs-size);
+  line-height: var(--text-sm-line);
+  color: var(--color-fg-muted);
+}
+
+/* Table columns */
+
+.colServices {
+  width: 200px;
+}
+
+.serviceName {
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-default);
+}
+
+.stackedCell {
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: flex-start;
@@ -131,36 +122,68 @@
   line-height: var(--text-sm-line);
 }
 
-.dueDate {
+.overdueDays {
   font-weight: var(--font-weight-semibold);
   color: var(--color-fg-muted);
 }
 
-.daysRemaining {
+.overdueSeverity {
   font-weight: var(--font-weight-regular);
   letter-spacing: var(--text-sm-tracking);
   color: var(--color-fg-subtle);
 }
 
+.missedSlaCell {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.missedSlaHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.missedSlaHeaderText {
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-fg-muted);
+}
+
+.missedSlaBreakdown {
+  font-size: var(--text-xs-size);
+  line-height: 18px;
+  color: var(--color-fg-muted);
+}
+
+.missedSlaCount {
+  font-weight: var(--font-weight-semibold);
+}
+
 /* Responsive — see app/shared.module.css for the shared breakpoints and
    the table -> card transformation this builds on. */
 
+@media (max-width: 1024px) {
+  .statsRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+  }
+
+  .statTotal {
+    grid-column: 1 / -1;
+    width: auto;
+  }
+}
+
 @media (max-width: 700px) {
-  .cellFinding {
-    width: auto;
-    height: auto;
-    gap: var(--space-1);
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
   }
 
-  .findingTitle,
-  .findingSubtitle {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-  }
-
-  .cellLabels {
+  .colServices {
     width: auto;
-    flex-wrap: wrap;
   }
 }
