@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Button from "./components/Button";
 import FilterPanel from "./components/FilterPanel";
 import Navbar from "./components/Navbar";
 import Pagination from "./components/Pagination";
+import SortableHeader, { type SortDirection } from "./components/SortableHeader";
 import {
   createEmptyFilterState,
   countSelected,
@@ -24,6 +26,25 @@ type ServiceRow = {
   missedCritical: number;
   missedHigh: number;
   inSla: number;
+};
+
+type ServiceSortKey =
+  | "service"
+  | "team"
+  | "overdueDays"
+  | "missedSla"
+  | "nearSla"
+  | "inSla"
+  | "exceptions";
+
+const SERVICE_SORT_LABELS: Record<ServiceSortKey, string> = {
+  service: "Services",
+  team: "Team/Owner",
+  overdueDays: "Most Overdue Finding",
+  missedSla: "Missed SLA",
+  nearSla: "Near SLA",
+  inSla: "In SLA",
+  exceptions: "Exceptions",
 };
 
 const OVERDUE_POOL = [
@@ -65,6 +86,43 @@ function buildServices(count: number): ServiceRow[] {
 }
 
 const ALL_SERVICES = buildServices(34);
+
+function matchesServiceSearch(row: ServiceRow, query: string) {
+  const searchableText = [
+    row.service,
+    row.team,
+    row.overdueDays,
+    row.overdueSeverity,
+    "Missed SLA",
+    row.missedCritical,
+    row.missedHigh,
+    "Near SLA",
+    row.inSla,
+    "Exception",
+  ]
+    .join(" ")
+    .toLocaleLowerCase();
+
+  return searchableText.includes(query);
+}
+
+function compareServices(left: ServiceRow, right: ServiceRow, key: ServiceSortKey) {
+  switch (key) {
+    case "service":
+      return left.service.localeCompare(right.service);
+    case "team":
+      return left.team.localeCompare(right.team);
+    case "overdueDays":
+      return left.overdueDays - right.overdueDays;
+    case "missedSla":
+      return left.missedCritical + left.missedHigh - (right.missedCritical + right.missedHigh);
+    case "inSla":
+      return left.inSla - right.inSla;
+    case "nearSla":
+    case "exceptions":
+      return 0;
+  }
+}
 
 const STATS = [
   { label: "Missed SLA", value: "1,072", icon: "x-circle", trendIcon: "arrow-up-right", trendValue: "96", trendCaption: "more than last month" },
@@ -144,6 +202,10 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(createEmptyFilterState);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortKey, setSortKey] = useState<ServiceSortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Services rows only carry a severity (via their most-overdue finding) —
   // State/SLA Status/Exception Status are per-finding concepts, so those
@@ -151,10 +213,20 @@ export default function Home() {
   const filteredServices = useMemo(
     () =>
       ALL_SERVICES.filter((row) =>
-        matchesFilters({ severity: row.overdueSeverity }, appliedFilters),
+        matchesFilters({ severity: row.overdueSeverity }, appliedFilters) &&
+        matchesServiceSearch(row, searchQuery.trim().toLocaleLowerCase()),
       ),
-    [appliedFilters],
+    [appliedFilters, searchQuery],
   );
+
+  const sortedServices = useMemo(() => {
+    if (!sortKey) return filteredServices;
+
+    return [...filteredServices].sort((left, right) => {
+      const result = compareServices(left, right, sortKey);
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [filteredServices, sortDirection, sortKey]);
 
   const totalItems = filteredServices.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -162,10 +234,13 @@ export default function Home() {
 
   const visibleServices = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredServices.slice(start, start + pageSize);
-  }, [filteredServices, currentPage, pageSize]);
+    return sortedServices.slice(start, start + pageSize);
+  }, [sortedServices, currentPage, pageSize]);
 
   const activeChips = getActiveChips(appliedFilters);
+  const resultAnnouncement = `${totalItems} of ${ALL_SERVICES.length} services shown${
+    sortKey ? `, sorted by ${SERVICE_SORT_LABELS[sortKey]} ${sortDirection === "asc" ? "ascending" : "descending"}` : ""
+  }.`;
 
   function removeChip(groupKey: string, value: string) {
     setAppliedFilters((prev) => {
@@ -181,12 +256,31 @@ export default function Home() {
     setPage(1);
   }
 
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    setPage(1);
+  }
+
+  function handleSort(column: string) {
+    const nextKey = column as ServiceSortKey;
+    if (sortKey === nextKey) {
+      setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(nextKey);
+      setSortDirection("asc");
+    }
+    setPage(1);
+  }
+
   return (
     <div>
       <Navbar />
 
       <div className={shared.page}>
         <h1 className={shared.pageTitle}>Services</h1>
+        <p aria-atomic="true" aria-live="polite" className={shared.srOnly}>
+          {resultAnnouncement}
+        </p>
 
         <div className={styles.statsRow}>
           <div className={styles.statTotal}>
@@ -230,10 +324,14 @@ export default function Home() {
 
         <div className={shared.card}>
           <div className={shared.filterHeader}>
-            <button
+            <Button
+              variant="secondary"
               className={shared.filterButton}
               type="button"
+              ref={filterTriggerRef}
               onClick={() => setFilterPanelOpen(true)}
+              aria-expanded={filterPanelOpen}
+              aria-controls="filter-panel"
             >
               <Image
                 className={shared.filterIcon}
@@ -248,12 +346,13 @@ export default function Home() {
                   {countSelected(appliedFilters)}
                 </span>
               )}
-            </button>
+            </Button>
             <div className={shared.filterTags}>
               {activeChips.map((chip) => (
                 <span key={`${chip.groupKey}-${chip.value}`} className={shared.tag}>
                   {chip.label}
-                  <button
+                  <Button
+                    variant="icon"
                     type="button"
                     className={shared.tagDismissButton}
                     onClick={() => removeChip(chip.groupKey, chip.value)}
@@ -266,7 +365,7 @@ export default function Home() {
                       width={16}
                       height={16}
                     />
-                  </button>
+                  </Button>
                 </span>
               ))}
             </div>
@@ -274,80 +373,20 @@ export default function Home() {
               className={shared.searchInput}
               type="text"
               placeholder="Search"
+              aria-label="Search services"
+              value={searchQuery}
+              onChange={(event) => handleSearchChange(event.target.value)}
             />
           </div>
 
           <div className={shared.tableHeaderRow}>
-            <div className={`${shared.headerCell} ${styles.colServices}`}>
-              <span>Services</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Team/Owner</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Most Overdue Finding</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Missed SLA</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Near SLA</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>In SLA</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Exceptions</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
+            <SortableHeader label="Services" column="service" activeColumn={sortKey} direction={sortDirection} className={styles.colServices} onSort={handleSort} />
+            <SortableHeader label="Team/Owner" column="team" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="Most Overdue Finding" column="overdueDays" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="Missed SLA" column="missedSla" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="Near SLA" column="nearSla" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="In SLA" column="inSla" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="Exceptions" column="exceptions" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
           </div>
 
           {visibleServices.length > 0 ? (
@@ -376,6 +415,7 @@ export default function Home() {
       <FilterPanel
         open={filterPanelOpen}
         applied={appliedFilters}
+        triggerRef={filterTriggerRef}
         onApply={handleApplyFilters}
         onClose={() => setFilterPanelOpen(false)}
       />

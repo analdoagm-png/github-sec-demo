@@ -17,9 +17,9 @@
 .cellFinding {
   flex-direction: column;
   flex-wrap: nowrap;
-  align-items: flex-start;
+  align-items: flex-start !important;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   height: 96px;
   width: 352px;
   overflow: hidden;
@@ -27,16 +27,19 @@
 
 .findingTitle {
   width: 100%;
+  text-align: left;
   font-size: var(--text-sm-size);
   line-height: var(--text-sm-line);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-fg-link);
+  color: var(--color-fg-default);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .findingSubtitle {
+  width: 100%;
+  text-align: left;
   font-size: var(--text-xs-size);
   line-height: var(--text-xs-line);
   color: var(--color-fg-muted);
@@ -110,21 +113,26 @@
 }
 
 .cellOwner {
+  flex: 0 0 256px;
+  width: 256px;
+  min-width: 0;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   font-size: var(--text-sm-size);
   line-height: var(--text-sm-line);
   letter-spacing: var(--text-sm-tracking);
   color: var(--color-fg-muted);
 }
 
-.ownerLink {
-  color: var(--color-fg-link);
-  text-decoration: underline;
+.ownerText {
+  flex-shrink: 0;
+  color: var(--color-fg-default);
 }
 
 .cellDueDate {
   flex-direction: column;
   flex-wrap: nowrap;
-  align-items: flex-start;
+  align-items: flex-start !important;
   justify-content: center;
   gap: var(--space-1);
   font-size: var(--text-sm-size);
@@ -132,13 +140,20 @@
 }
 
 .dueDate {
+  width: 100%;
+  text-align: left;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-line);
   font-weight: var(--font-weight-semibold);
   color: var(--color-fg-muted);
 }
 
 .daysRemaining {
+  width: 100%;
+  text-align: left;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-line);
   font-weight: var(--font-weight-regular);
-  letter-spacing: var(--text-sm-tracking);
   color: var(--color-fg-subtle);
 }
 
@@ -162,5 +177,11 @@
   .cellLabels {
     width: auto;
     flex-wrap: wrap;
+  }
+
+  .cellOwner {
+    flex: initial;
+    width: auto;
+    white-space: normal;
   }
 }

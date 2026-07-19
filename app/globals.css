@@ -42,12 +42,17 @@
   --color-accent-emphasis: #0969da;
   --color-accent-subtle: #ddf4ff;
   --color-accent-coral: #f9826c;
+  --color-nav-hover: rgba(255, 255, 255, 0.08);
+  --color-nav-active: rgba(255, 255, 255, 0.16);
 
   /* Color — buttons */
   --color-btn-bg: #f6f8fa;
   --color-btn-border: #1b1f24;
   --color-btn-counter-bg: rgba(27, 31, 36, 0.08);
   --color-btn-primary-bg: #2da44e;
+  --color-btn-primary-border: #1a7f37;
+  --color-btn-primary-hover: #2c974b;
+  --color-btn-primary-active: #298e46;
 
   /* Color — form controls & panel chrome */
   --color-checkbox-border: #bebebe;

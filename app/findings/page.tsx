@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Button from "../components/Button";
 import FilterPanel from "../components/FilterPanel";
 import Navbar from "../components/Navbar";
 import Pagination from "../components/Pagination";
+import SortableHeader, { type SortDirection } from "../components/SortableHeader";
 import {
   createEmptyFilterState,
   countSelected,
@@ -34,6 +36,25 @@ type Finding = {
   state: FindingState;
   slaStatus: SlaStatus;
   exceptionStatus: ExceptionStatus;
+};
+
+type FindingSortKey =
+  | "title"
+  | "state"
+  | "labels"
+  | "severity"
+  | "serviceOwner"
+  | "dueDate"
+  | "slaStatus";
+
+const FINDING_SORT_LABELS: Record<FindingSortKey, string> = {
+  title: "Finding",
+  state: "State",
+  labels: "Labels",
+  severity: "Severity",
+  serviceOwner: "Service / Owner",
+  dueDate: "Due Date",
+  slaStatus: "SLA Status",
 };
 
 const FINDING_TEMPLATES: { title: string; severity: Severity; category: string }[] = [
@@ -95,6 +116,61 @@ function buildFindings(count: number): Finding[] {
 
 const ALL_FINDINGS = buildFindings(37);
 
+const SEVERITY_RANK: Record<Severity, number> = {
+  Critical: 0,
+  High: 1,
+  Moderate: 2,
+  Low: 3,
+  Informational: 4,
+};
+
+const SLA_STATUS_RANK: Record<SlaStatus, number> = {
+  "Missed SLA": 0,
+  "Near SLA": 1,
+  Exception: 2,
+  "In SLA": 3,
+  Remediated: 4,
+};
+
+function matchesFindingSearch(finding: Finding, query: string) {
+  const searchableText = [
+    finding.title,
+    finding.issueRef,
+    finding.labels.join(" "),
+    finding.severity,
+    finding.repo,
+    finding.owner,
+    finding.dueDate,
+    finding.daysRemaining,
+    finding.state,
+    finding.slaStatus,
+    finding.exceptionStatus,
+  ]
+    .join(" ")
+    .toLocaleLowerCase();
+
+  return searchableText.includes(query);
+}
+
+function compareFindings(left: Finding, right: Finding, key: FindingSortKey) {
+  switch (key) {
+    case "title":
+      return left.title.localeCompare(right.title);
+    case "state":
+      return left.state.localeCompare(right.state);
+    case "labels":
+      return left.labels.join(" ").localeCompare(right.labels.join(" "));
+    case "severity":
+      return SEVERITY_RANK[left.severity] - SEVERITY_RANK[right.severity];
+    case "serviceOwner":
+      return `${left.repo} ${left.owner}`.localeCompare(`${right.repo} ${right.owner}`);
+    case "dueDate":
+      return new Date(left.dueDate).getTime() - new Date(right.dueDate).getTime();
+    case "slaStatus":
+      return SLA_STATUS_RANK[left.slaStatus] - SLA_STATUS_RANK[right.slaStatus];
+  }
+}
+
 const SEVERITY_CLASS: Record<Severity, string> = {
   Critical: styles.severityCritical,
   High: styles.severityHigh,
@@ -155,13 +231,9 @@ function FindingRow({ finding }: { finding: Finding }) {
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${styles.cellOwner}`}>
         <span className={shared.mobileLabel}>Service / Owner</span>
-        <a className={styles.ownerLink} href="#">
-          {finding.repo}
-        </a>
+        <span className={styles.ownerText}>{finding.repo}</span>
         {" / "}
-        <a className={styles.ownerLink} href="#">
-          {finding.owner}
-        </a>
+        <span className={styles.ownerText}>{finding.owner}</span>
       </div>
       <div className={`${shared.cell} ${shared.colFlex} ${styles.cellDueDate}`}>
         <span className={shared.mobileLabel}>Due Date</span>
@@ -188,6 +260,10 @@ export default function FindingsPage() {
   const [page, setPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<FilterState>(createEmptyFilterState);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortKey, setSortKey] = useState<FindingSortKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
 
   const filteredFindings = useMemo(
     () =>
@@ -200,10 +276,19 @@ export default function FindingsPage() {
             exceptionStatus: finding.exceptionStatus,
           },
           appliedFilters,
-        ),
+        ) && matchesFindingSearch(finding, searchQuery.trim().toLocaleLowerCase()),
       ),
-    [appliedFilters],
+    [appliedFilters, searchQuery],
   );
+
+  const sortedFindings = useMemo(() => {
+    if (!sortKey) return filteredFindings;
+
+    return [...filteredFindings].sort((left, right) => {
+      const result = compareFindings(left, right, sortKey);
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [filteredFindings, sortDirection, sortKey]);
 
   const totalItems = filteredFindings.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -211,10 +296,13 @@ export default function FindingsPage() {
 
   const visibleFindings = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredFindings.slice(start, start + pageSize);
-  }, [filteredFindings, currentPage, pageSize]);
+    return sortedFindings.slice(start, start + pageSize);
+  }, [sortedFindings, currentPage, pageSize]);
 
   const activeChips = getActiveChips(appliedFilters);
+  const resultAnnouncement = `${totalItems} of ${ALL_FINDINGS.length} findings shown${
+    sortKey ? `, sorted by ${FINDING_SORT_LABELS[sortKey]} ${sortDirection === "asc" ? "ascending" : "descending"}` : ""
+  }.`;
 
   function removeChip(groupKey: string, value: string) {
     setAppliedFilters((prev) => {
@@ -230,19 +318,46 @@ export default function FindingsPage() {
     setPage(1);
   }
 
+  function handleSearchChange(value: string) {
+    setSearchQuery(value);
+    setPage(1);
+  }
+
+  function handleSort(column: string) {
+    const nextKey = column as FindingSortKey;
+    if (sortKey === nextKey) {
+      setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(nextKey);
+      setSortDirection("asc");
+    }
+    setPage(1);
+  }
+
   return (
     <div>
       <Navbar />
 
       <div className={shared.page}>
-        <h1 className={shared.pageTitle}>{ALL_FINDINGS.length} Findings</h1>
+        <h1 className={shared.pageTitle}>
+          {totalItems === ALL_FINDINGS.length
+            ? `${ALL_FINDINGS.length} Findings`
+            : `${totalItems} of ${ALL_FINDINGS.length} Findings`}
+        </h1>
+        <p aria-atomic="true" aria-live="polite" className={shared.srOnly}>
+          {resultAnnouncement}
+        </p>
 
         <div className={shared.card}>
           <div className={shared.filterHeader}>
-            <button
+            <Button
+              variant="secondary"
               className={shared.filterButton}
               type="button"
+              ref={filterTriggerRef}
               onClick={() => setFilterPanelOpen(true)}
+              aria-expanded={filterPanelOpen}
+              aria-controls="filter-panel"
             >
               <Image
                 className={shared.filterIcon}
@@ -257,12 +372,13 @@ export default function FindingsPage() {
                   {countSelected(appliedFilters)}
                 </span>
               )}
-            </button>
+            </Button>
             <div className={shared.filterTags}>
               {activeChips.map((chip) => (
                 <span key={`${chip.groupKey}-${chip.value}`} className={shared.tag}>
                   {chip.label}
-                  <button
+                  <Button
+                    variant="icon"
                     type="button"
                     className={shared.tagDismissButton}
                     onClick={() => removeChip(chip.groupKey, chip.value)}
@@ -275,7 +391,7 @@ export default function FindingsPage() {
                       width={16}
                       height={16}
                     />
-                  </button>
+                  </Button>
                 </span>
               ))}
             </div>
@@ -283,80 +399,20 @@ export default function FindingsPage() {
               className={shared.searchInput}
               type="text"
               placeholder="Search"
+              aria-label="Search findings"
+              value={searchQuery}
+              onChange={(event) => handleSearchChange(event.target.value)}
             />
           </div>
 
           <div className={shared.tableHeaderRow}>
-            <div className={`${shared.headerCell} ${styles.colFinding}`}>
-              <span>Finding</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${styles.colState}`}>
-              <span>State</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${styles.colLabels}`}>
-              <span>Labels</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Severity</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Service / Owner</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>Due Date</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={`${shared.headerCell} ${shared.colFlex}`}>
-              <span>SLA Status</span>
-              <Image
-                className={shared.selectorIcon}
-                src="/icons/selector.svg"
-                alt=""
-                width={20}
-                height={20}
-              />
-            </div>
+            <SortableHeader label="Finding" column="title" activeColumn={sortKey} direction={sortDirection} className={styles.colFinding} onSort={handleSort} />
+            <SortableHeader label="State" column="state" activeColumn={sortKey} direction={sortDirection} className={styles.colState} onSort={handleSort} />
+            <SortableHeader label="Labels" column="labels" activeColumn={sortKey} direction={sortDirection} className={styles.colLabels} onSort={handleSort} />
+            <SortableHeader label="Severity" column="severity" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="Service / Owner" column="serviceOwner" activeColumn={sortKey} direction={sortDirection} className={styles.cellOwner} onSort={handleSort} />
+            <SortableHeader label="Due Date" column="dueDate" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
+            <SortableHeader label="SLA Status" column="slaStatus" activeColumn={sortKey} direction={sortDirection} className={shared.colFlex} onSort={handleSort} />
           </div>
 
           {visibleFindings.length > 0 ? (
@@ -390,6 +446,7 @@ export default function FindingsPage() {
       <FilterPanel
         open={filterPanelOpen}
         applied={appliedFilters}
+        triggerRef={filterTriggerRef}
         onApply={handleApplyFilters}
         onClose={() => setFilterPanelOpen(false)}
       />

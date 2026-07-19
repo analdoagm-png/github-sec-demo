@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { ChangeEvent } from "react";
+import Button from "./Button";
 import styles from "../shared.module.css";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
@@ -45,7 +46,8 @@ export default function Pagination({
         <span className={styles.resultsLabel}>Results per page</span>
       </div>
       <div className={styles.paginationNav}>
-        <button
+        <Button
+          variant="tertiary"
           className={styles.pageBtn}
           type="button"
           disabled={currentPage === 1}
@@ -59,20 +61,22 @@ export default function Pagination({
             height={16}
           />
           Previous
-        </button>
+        </Button>
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(
           (pageNumber) => (
-            <button
+            <Button
               key={pageNumber}
+              variant="tertiary"
               className={`${styles.pageBtn} ${pageNumber === currentPage ? styles.pageBtnActive : ""}`}
               type="button"
               onClick={() => onPageChange(pageNumber)}
             >
               {pageNumber}
-            </button>
+            </Button>
           ),
         )}
-        <button
+        <Button
+          variant="tertiary"
           className={`${styles.pageBtn} ${styles.pageBtnLink}`}
           type="button"
           disabled={currentPage === totalPages}
@@ -86,7 +90,7 @@ export default function Pagination({
             width={16}
             height={16}
           />
-        </button>
+        </Button>
       </div>
       <p className={styles.totalItems}>Total: {totalItems} items</p>
     </div>

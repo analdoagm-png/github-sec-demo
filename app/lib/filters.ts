@@ -1,6 +1,6 @@
 // Filter taxonomy adapted from the Figma filter panel (node 73:8959).
-// Groups with `children` are pure "select all" headers — their own value
-// is never a real filter value, only their leaves are.
+// A group can optionally use children for a future select-all hierarchy;
+// active filters always resolve to leaf values.
 
 export type FilterOption = {
   value: string;
@@ -23,16 +23,10 @@ export const FILTER_GROUPS: FilterGroup[] = [
     key: "state",
     label: "State",
     options: [
-      {
-        value: "__state_open",
-        label: "Open",
-        children: [
-          leaf("Open"),
-          leaf("Reopened"),
-          leaf("False Positive"),
-          leaf("Risk Acceptance"),
-        ],
-      },
+      leaf("Open"),
+      leaf("Reopened"),
+      leaf("False Positive"),
+      leaf("Risk Acceptance"),
       leaf("Closed"),
     ],
   },
@@ -45,21 +39,11 @@ export const FILTER_GROUPS: FilterGroup[] = [
     key: "slaStatus",
     label: "SLA Status",
     options: [
-      {
-        value: "__sla_open",
-        label: "Open",
-        children: [
-          leaf("In SLA"),
-          leaf("Near SLA"),
-          leaf("Missed SLA"),
-          leaf("Exception"),
-        ],
-      },
-      {
-        value: "__sla_closed",
-        label: "Closed",
-        children: [leaf("Remediated"), leaf("Exception")],
-      },
+      leaf("In SLA"),
+      leaf("Near SLA"),
+      leaf("Missed SLA"),
+      leaf("Exception"),
+      leaf("Remediated"),
     ],
   },
   {
@@ -93,6 +77,23 @@ export function cloneFilterState(state: FilterState): FilterState {
   return Object.fromEntries(
     Object.entries(state).map(([key, values]) => [key, new Set(values)]),
   );
+}
+
+export function filterStatesEqual(
+  left: FilterState,
+  right: FilterState,
+): boolean {
+  const groupKeys = new Set([...Object.keys(left), ...Object.keys(right)]);
+
+  return [...groupKeys].every((groupKey) => {
+    const leftValues = left[groupKey] ?? new Set<string>();
+    const rightValues = right[groupKey] ?? new Set<string>();
+
+    return (
+      leftValues.size === rightValues.size &&
+      [...leftValues].every((value) => rightValues.has(value))
+    );
+  });
 }
 
 export function countSelected(state: FilterState): number {

@@ -8,7 +8,7 @@ import styles from "../shared.module.css";
 const NAV_LINKS = [
   { href: "/", label: "Services" },
   { href: "/findings", label: "Findings" },
-  { href: "#", label: "Exceptions" },
+  { label: "Exceptions", unavailable: true },
 ];
 
 export default function Navbar() {
@@ -25,15 +25,30 @@ export default function Navbar() {
           height={40}
           priority
         />
-        {NAV_LINKS.map((link) => (
-          <Link
-            key={link.label}
-            href={link.href}
-            className={`${styles.navLink} ${pathname === link.href ? styles.navLinkActive : ""}`}
-          >
-            {link.label}
-          </Link>
-        ))}
+        {NAV_LINKS.map((link) => {
+          if (link.unavailable) {
+            return (
+              <span
+                aria-disabled="true"
+                className={`${styles.navLink} ${styles.navLinkDisabled}`}
+                key={link.label}
+                title="Exceptions dashboard is not available yet"
+              >
+                {link.label}
+              </span>
+            );
+          }
+
+          return (
+            <Link
+              key={link.label}
+              href={link.href!}
+              className={`${styles.navLink} ${pathname === link.href ? styles.navLinkActive : ""}`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
       </div>
       <div className={styles.navbarRight}>
         <div className={styles.profile}>

@@ -61,20 +61,7 @@
 }
 
 .closeButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  border-radius: var(--radius-sm);
-}
-
-.closeButton:hover {
-  background: var(--color-canvas-subtle);
+  flex-shrink: 0;
 }
 
 /* Body — the only part that scrolls */
@@ -112,8 +99,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 2px 0;
+  min-height: 32px;
+  padding: var(--space-1) var(--space-1-5);
   cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.checkboxRow:hover {
+  background: var(--color-canvas-subtle);
 }
 
 .checkboxRowNested {
@@ -129,8 +122,8 @@
 
 .checkbox {
   appearance: none;
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   margin: 0;
   flex-shrink: 0;
   border: 1px solid var(--color-checkbox-border);
@@ -188,22 +181,8 @@
 }
 
 .clearButton {
-  display: flex;
-  align-items: center;
   gap: var(--space-1);
-  background: none;
-  border: none;
-  padding: 10px 0;
-  font-size: var(--text-sm-size);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--text-sm-tracking);
-  color: var(--color-fg-accent);
-  cursor: pointer;
-}
-
-.clearButton:disabled {
-  color: var(--color-border-default);
-  cursor: not-allowed;
+  --button-padding: 10px 0;
 }
 
 .footerActions {
@@ -211,29 +190,6 @@
   align-items: center;
   gap: var(--space-3);
   flex-shrink: 0;
-}
-
-.cancelButton {
-  padding: 10px 20px;
-  background: var(--color-btn-bg);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-btn);
-  font-size: var(--text-sm-size);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-fg-default);
-  cursor: pointer;
-}
-
-.saveButton {
-  padding: 10px 20px;
-  background: var(--color-btn-primary-bg);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm-size);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-fg-on-emphasis);
-  cursor: pointer;
 }
 
 @media (max-width: 700px) {
